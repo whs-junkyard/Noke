@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+<title>Noke</title>
+<meta charset="utf-8">
+<script src="jq.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+body{
+	overflow: hidden;
+	background: #eee;
+}
+#lyric{
+	position: absolute;
+	bottom: 0px;
+	text-align: center;
+	width: 100%;
+	font-size: 48pt;
+	padding-bottom: 30px;
+	line-height: 1.5em;
+	text-shadow: white 0px 0px 10px;
+}
+#lyric .done{
+	color: red;
+}
+#lyric p{
+	margin:0;
+}
+</style>
+<script>
+var lastSong, lastState, cursor, lyric, sLyric, songInfo;
+var data = {};
+var path={"lyrics": "/Lyrics/"};
+
+/**
+ * Load lyr
+ */
+function loadLyric(){
+	$.ajax(path.lyrics+data.song+".lyr", {
+		"beforeSend": function(x){
+			x.overrideMimeType("text/plain; charset=TIS-620");
+		},
+		"success": function(d){
+			d=d.trim().split(/\r\n|\n/);
+			sn = d[0].replace(/\((.*)$/, "").trim();
+			songInfo = {
+				"name": sn,
+				"key": d[2],
+				"artist": d[1],
+			};
+			lyric = d.slice(4);
+			sLyric = lyric.join("\n");
+		}
+	});
+}
+/**
+ * Load cursor
+ */
+function loadCursor(){
+	$.getJSON(data.song+".cur", function(x){
+		// decoding on client = binary issue
+		cursor = x;
+	});
+}
+
+/**
+ * Show the lyrics
+ */
+function handleLyrics(){
+	if(!lyric) return;
+	// any less hackish way?
+	p = 0;
+	for(var i in cursor){
+		if(cursor[i] > data.ctick) break;
+		p=i;
+	}
+	newl = sLyric.substr(0, p) + "$!!!!" + sLyric.substr(p+1)
+	l = newl.split("\n");
+	// find it!
+	for(var line in l){
+		line = parseInt(line);
+		if(l[line].indexOf("$!!!!") != -1){
+			pos = l[line].indexOf("$!!!!");
+			break;
+		}
+	}
+	// we got everything I guess
+	if(line % 2 == 0){
+		target = $("#ly1");
+		other = $("#ly2");
+	}else{
+		target = $("#ly2");
+		other = $("#ly1");
+	}
+	// prevent vowels
+	while(true){
+		if(lyric[line][pos] === undefined) break;
+		if(lyric[line][pos].match(/[ึุูี๊ัํ่๋้็ื์ิฺำ]/)){
+			pos += 1;
+		}else{
+			break;
+		}
+	}
+	other.html(lyric[line+1]);
+	// "slice"
+	done = lyric[line].substr(0, pos);
+	notDone = lyric[line].substr(pos);
+	target.html("<span class='done'>" + done + "</span>" + notDone);
+}
+
+/**
+ * Load lyric and housekeeping stuff
+ */
+function initNewSong(){
+	loadLyric();
+	loadCursor();
+	lastSong = data.song;
+}
+
+/**
+ * Hide/show lyric
+ */
+function initState(){
+	lastState = data.isplay;
+	if(data.isplay){
+		$("#lyric").show();
+	}else{
+		$("#lyric").hide();
+	}
+}
+
+/* Socket system */
+var socket = new io.Socket();
+socket.connect();
+socket.on('message', function(msg){
+	msg = JSON.parse(msg);
+	for(var i in msg){
+		data[i] = msg[i];
+	}
+	if(data.song != lastSong) initNewSong();
+	if(data.isplay != lastState) initState();
+	if(data.isplay)
+		handleLyrics();
+});
+</script>
+</head>
+<body>
+<div id="lyric">
+<p id="ly1"></p>
+<p id="ly2"></p>
+</div>
+</body>
+</html>

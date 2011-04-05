@@ -17,7 +17,7 @@ var callback = [];
  * Target host
  * @type {Array.<(string|number)>}
  */
-exports.target = ["127.0.0.1", "5555"];
+exports.target = ["127.0.0.1", "9997"];
 
 client.on("message", function (msg, info){
 	if(exports.debug) console.log("got: " + msg + " from " + info.address);
@@ -29,7 +29,12 @@ client.on("message", function (msg, info){
 	pmsg.forEach(function(d){
 		d = d.trim().split(" ");
 		// We're "Java"Script afterall
-		out[d[0]] = JSON.parse(d.slice(1).join(" "));
+		txt = d.slice(1).join(" ");
+		try{
+			out[d[0]] = JSON.parse(txt);
+		}catch(err){
+			out[d[0]] = txt;
+		}
 	});
 	
 	if(callback.length > 0){
@@ -80,6 +85,14 @@ exports.send = function(message, cb){
 }
 
 /**
+ * Clear the command stack, use when you polled midicore
+ * but it's not responding
+ */
+exports.clear = function(){
+	callback = [];
+}
+
+/**
  * List of valid commands
  * @type {Array.<string>}
  */
@@ -97,7 +110,6 @@ exports.commands.forEach(function(n){
 			arg.push({});
 			arg[0][n] = d;
 		}
-		console.log(arg);
 		exports.send.apply(null, arg);
 	}
 });
