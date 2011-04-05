@@ -83,7 +83,7 @@ exports.send = function(message, cb){
  * List of valid commands
  * @type {Array.<string>}
  */
-exports.commands = ["sequence", "sq", "soundfont", "sf", "play", "p", "purse", "pu", "mute", "m", "stop", "st", "device", "dev", "control", "pitch", "bpmc", "resolution", "timesignature", "keysignature", "cpitch", "bpm", "ctick", "mxtick", "mxtime", "ctime", "sequenceexists", "ischannelmute", "isplay", "i", "devlist", "dl", "verbose", "v", "end"];
+exports.commands = ["sequence", "sq", "soundfont", "sf", "play", "p", "purse", "pu", "mute", "m", "stop", "st", "device", "dev", "control", "pitch", "bpmc", "resolution", "res", "timesignature", "time", "keysignature", "key", "cpitch", "bpm", "ctick", "ct", "mxtick", "mxtime", "ctime", "sequenceexists", "se", "ischannelmute", "im", "isplay", "i", "devlist", "dl", "verbose", "v", "end"];
 
 exports.commands.forEach(function(n){
 	exports[n] = function(){

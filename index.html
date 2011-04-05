@@ -1,0 +1,10 @@
+<script src="/socket.io/socket.io.js"></script>
+<script>
+var socket = new io.Socket();
+socket.connect();
+socket.on('message', function(msg){
+	shit = document.getElementById("shit");
+	shit.innerHTML = msg;
+})
+</script>
+<pre id="shit"></pre>
