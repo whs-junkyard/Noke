@@ -110,6 +110,8 @@ exports.commands.forEach(function(n){
 			arg.push({});
 			arg[0][n] = d;
 		}
+		if(arguments.length >= 2) arg.push(arguments[1]);
+		if(exports.debug) console.log(arg);
 		exports.send.apply(null, arg);
 	}
 });

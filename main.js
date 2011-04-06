@@ -118,9 +118,33 @@ socket.on('connection', function(client){
 				return;
 			}
 			queue.push(d.name);
+		}else if(d.type == "mute"){
+			midicore.mute(parseInt(d.channel)-1, function(){
+				channelPoller(false);
+			});
 		}
 	});
 });
+
+var channels = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+var channelLoad = 0;
+function channelPoller(poll){
+	i=0;
+	channelLoad = 0;
+	while(i<16){
+		midicore.ischannelmute(i, (function(i, d){
+			channels[i] = !d.ischannelmute;
+			channelLoad += 1;
+			if(channelLoad == 16){
+				socket.broadcast({"type": "channel", "data": channels});
+				channelLoad = 0;
+				if(poll !== false)
+					setTimeout(channelPoller, 500);
+			}
+		}).bind(null, i));
+		i++;
+	}
+}
 
 function midiPoller(){
 	midicore.send(["isplay", "bpm"], function(d){
@@ -158,6 +182,7 @@ function pollMidicore(){
 		console.log("Noke ready. http://localhost:9998/");
 		playing = "900159";
 		setTimeout(midiPoller, 100);
+		setTimeout(channelPoller, 100);
 	});
 }
 pmdc = setInterval(pollMidicore, 50);

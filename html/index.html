@@ -108,9 +108,31 @@ body{
 	-moz-background-size: cover;
 	-webkit-background-size: cover;
 }
+#channels{
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	background: rgba(0,0,0,0.8);
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	color: white;
+	padding: 5px;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+	z-index: 1000;
+}
+#channels table{
+	border-collapse: collapse;
+}
+#channels td{
+	border: black solid 1px;
+	padding: 5px;
+	background: white;
+}
 </style>
 <script>
 var lastSong, lastState, cursor, lyric, sLyric, songInfo, bglist;
+var channels;
 var data = {};
 
 /**
@@ -285,11 +307,17 @@ socket.on('message', function(msg){
 		});
 		selPos = 0;
 		updatePos();
+	}else if(msg.type == "channel"){
+		channels = msg.data;
+		channels.forEach(function(d, i){
+			$("#channels td:eq("+i+")").css("color", d?"green":"red");
+		});
 	}
 });
 
 /* Finder */
 function updatePos(){
+	if($("#findout div").length == 0)return;
 	$("#findout div.selected").removeClass("selected");
 	d=$("#findout div:eq("+selPos+")").addClass("selected");
 	$("#findout").scrollTo(d);
@@ -298,8 +326,29 @@ $(function(){
 	$(window).keydown(function(){
 		$("#songfinder").get(0).focus();
 	});
+	$("#channels").hide();
+	$("#songfinder").keydown(function(e){
+		if(e.which == 16){ // shift
+			$("#channels").show();
+		}
+		if(e.shiftKey){
+			numbers = {49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9, 48: 10, 189: 11, 187: 12};
+			if(Object.keys(numbers).indexOf(e.which.toString()) != -1){
+				e.preventDefault();
+				socket.send({type: "mute", channel: numbers[e.which]});
+				return false;
+			}
+		}
+	});
 	$("#songfinder").keyup(function(e){
-		console.log(e.which);
+		if(e.shiftKey){
+			numbers = {49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9, 48: 0, 189: 11, 187: 12};
+			if(Object.keys(numbers).indexOf(e.which.toString()) != -1){
+				e.preventDefault();
+				return false;
+			}
+		}
+		$("#channels").hide();
 		if(e.which == 37){ //left
 		}else if(e.which == 38){ //up
 			selPos -= 1;
@@ -324,6 +373,12 @@ $(function(){
 		bglist = d;
 		shuffleBg();
 	});
+	$("#channels td").click(function(){
+		c = parseInt(this.innerHTML);
+		socket.send({type: "mute", channel: c});
+		e.preventDefault();
+		return false;
+	});
 });
 </script>
 </head>
@@ -333,6 +388,12 @@ $(function(){
 	<div id="findout">
 		
 	</div>
+</div>
+<div id="channels">
+	<strong>Channel status (Shift+1 to toggle channel 1)</strong>
+	<table>
+		<tr><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td><td>16</td></tr>
+	</table>
 </div>
 <div id="info"><div id='songname'></div><div id='artist'></div></div>
 <div id="lyric">
