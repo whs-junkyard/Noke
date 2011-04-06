@@ -22,12 +22,15 @@ body{
 	line-height: 1.5em;
 	-webkit-text-stroke: 3px white;
 	-moz-text-stroke: 3px white;
-	color: #ccc;
+	color: white;
 	text-align: center;
 	white-space: nowrap;
+	text-shadow: rgba(0,0,0,0.8) 0px 2px 5px;
 }
 #lyric .done, #lyric .doing{
 	color: blue;
+	-webkit-text-stroke: 3px cornflowerblue;
+	-moz-text-stroke: 3px cornflowerblue;
 }
 #lyric .doing{
 	overflow: hidden;
@@ -233,6 +236,7 @@ function initState(){
 		$("#lyric").show();
 	}else{
 		$("#lyric,#info").hide();
+		lastSong = null;
 	}
 }
 
