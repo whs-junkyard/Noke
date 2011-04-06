@@ -13,3 +13,4 @@ Dependencies
 ===================
 - socket.Io
 - express
+- iconv

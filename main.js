@@ -3,8 +3,22 @@ var fs = require('fs');
 var io = require('socket.io');
 var proc = require('child_process');
 var midicore = require('./midicore');
+var Iconv  = require('iconv').Iconv;
 
 var playing, queue=[];
+
+/* shuffle -- http://sedition.com/perl/javascript-fy.html */
+function fisherYates ( myArray ) {
+  var i = myArray.length;
+  if ( i == 0 ) return false;
+  while ( --i ) {
+     var j = Math.floor( Math.random() * ( i + 1 ) );
+     var tempi = myArray[i];
+     var tempj = myArray[j];
+     myArray[i] = tempj;
+     myArray[j] = tempi;
+   }
+}
 
 /* Web system */
 var app = express.createServer();
@@ -12,6 +26,29 @@ app.configure('development', function(){
     app.use(express.static(__dirname + '/html'));
     app.use(express.static(__dirname + '/midi'));
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+});
+app.get('/pictures.json', function(req, res){
+	res.contentType('json');
+	fs.readdir("midi/Pictures/", function(err, f){
+		f = f.filter(function(x){
+			return x.match(/\.(gif|jp[e]*g|png)$/);
+		});
+		fisherYates(f);
+		res.send(JSON.stringify(f));
+	});
+});
+app.get('/:file.lyr', function(req, res){
+	f=req.params.file;
+	if(!f.match(/^([0-9A-Z]+)$/)){
+		res.send("hack");
+		return;
+	}
+	res.contentType('text');
+	fs.readFile('midi/Lyrics/'+f+".lyr", function (err, data) {
+		if (err) throw err;
+		conv = new Iconv('TIS-620', 'UTF-8');
+		res.send(conv.convert(data));
+	});
 });
 app.get('/:file.cur', function(req, res){
 	res.contentType('json');
@@ -48,8 +85,9 @@ app.listen(9998);
 /* Midicore */
 var midiproc = proc.spawn('java', ['midicore.Main', '9997']);
 process.on('exit', function (){
-	midiproc.kill('SIGHUP');
-	console.log("SIGHUPed midicore");
+	midicore.end();
+	/*midiproc.kill('SIGHUP');
+	console.log("SIGHUPed midicore");*/
 });
 process.on('SIGINT', function () {
 	process.exit(0);
@@ -70,9 +108,11 @@ var socket = io.listen(app);
 socket.on('connection', function(client){ 
 	client.on('message', function(d){
 		if(d.type == "find"){
-			if(d.name) out = ["เธอจะอยู่กับฉันตลอดไป", "กาก", "กาก", "กาก", "กาก", "กาก", "กาก", "กาก", "กาก", "กาก"];
+			if(d.name) out = ["เธอจะอยู่กับฉันตลอดไป"];
 			else out =[];
 			client.send({type: "find", data: out});
+		}else if(d.type == "stop"){
+			midicore.stop();
 		}else if(d.type == "queue"){
 			if(!d.name.match(/^([0-9A-Z]+)$/)){
 				return;
@@ -93,11 +133,12 @@ function midiPoller(){
 				setTimeout(midiPoller, d.resolution);
 			});
 		}else{
-			playing=null;
-			if(queue){
+			if(queue.length > 0){
 				song = queue.shift();
-				playing = song;
 				midicore.send(["sq midi/Midi/"+song+".mid", "p"]);
+				playing = song;
+			}else{
+				playing=null;
 			}
 			setTimeout(midiPoller, 100);
 		}

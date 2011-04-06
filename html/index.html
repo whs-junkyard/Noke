@@ -21,13 +21,13 @@ body{
 	padding-bottom: 30px;
 	line-height: 1.5em;
 	-webkit-text-stroke: 3px white;
+	-moz-text-stroke: 3px white;
 	color: #ccc;
 	text-align: center;
 	white-space: nowrap;
 }
 #lyric .done, #lyric .doing{
 	color: blue;
-	-webkit-text-fill-color: blue;
 }
 #lyric .doing{
 	overflow: hidden;
@@ -60,6 +60,7 @@ body{
 	width: 100%;
 	color: white;
 	-webkit-text-stroke: 1px blue;
+	-moz-text-stroke: 1px blue;
 }
 #findout{
 	color: gray;
@@ -74,31 +75,61 @@ body{
 	background: red;
 	color: white;
 }
+#info{
+	position: absolute;
+	top: 10%;
+	left: 25%;
+	text-align: center;
+	background: rgba(0,0,0,0.8);
+	color: white;
+	width: 50%;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	font-size: 18pt;
+	padding: 20px;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+}
+#info #songname{
+	font-size: 20pt;
+	font-weight: bold;
+}
+.bgimg{
+	position: absolute;
+	top: 0px;left:0px;
+	width: 100%;height: 100%;
+	z-index: -1000;
+	opacity: 0;
+	-webkit-transition: opacity 1s linear;
+	-moz-transition: opacity 1s linear;
+	-moz-background-size: cover;
+	-webkit-background-size: cover;
+}
 </style>
 <script>
-var lastSong, lastState, cursor, lyric, sLyric, songInfo;
+var lastSong, lastState, cursor, lyric, sLyric, songInfo, bglist;
 var data = {};
-var path={"lyrics": "/Lyrics/"};
 
 /**
  * Load lyr
  */
 function loadLyric(){
-	$.ajax(path.lyrics+data.song+".lyr", {
-		"beforeSend": function(x){
-			x.overrideMimeType("text/plain; charset=TIS-620");
-		},
-		"success": function(d){
-			d=d.trim().split(/\r\n|\n/);
-			sn = d[0].replace(/\((.*)$/, "").trim();
-			songInfo = {
-				"name": sn,
-				"key": d[2],
-				"artist": d[1],
-			};
-			lyric = d.slice(4);
-			sLyric = lyric.join("\n");
-		}
+	$.get(data.song+".lyr", function(d){
+		d=d.trim().split(/\r\n|\n/);
+		sn = d[0].replace(/\((.*)$/, "").trim();
+		songInfo = {
+			"name": sn,
+			"key": d[2],
+			"artist": d[1],
+		};
+		lyric = d.slice(4);
+		sLyric = lyric.join("\n");
+		$("#info").fadeIn();
+		$("#songname").text(sn);
+		$("#artist").text(d[1] + " ( "+ d[2] + " )");
+		setTimeout(function(){
+			$("#info").fadeOut(1000);
+		}, 10000);
 	});
 }
 /**
@@ -167,9 +198,7 @@ function handleLyrics(){
 	target.html("<div style='visibility: hidden;'>.</div><div class='karaoke'><div class='done'><span class='rdone'>" + done + "</span><span class='doing'>" + thisOne+"</span></div><div class='all'>"+lyric[line]+"</div></div>");
 	// find out the width
 	nc = cursor[p+1];
-	if(!nc){
-		nc = data.mxtick;
-	}
+	if(!nc) nc = data.mxtick
 	percent = ((data.ctick - cursor[p]) / (nc - cursor[p]));
 	ow2 = $(".rdone", target).width();
 	ow3 = $(".doing", target).width();
@@ -203,8 +232,29 @@ function initState(){
 	if(data.isplay){
 		$("#lyric").show();
 	}else{
-		$("#lyric").hide();
+		$("#lyric,#info").hide();
 	}
+}
+
+/**
+ * Bg image changer
+ */
+function shuffleBg(){
+	bg = bglist.shift();
+	if(!bg) return;
+	if($.browser.webkit){
+		ele = $(".bgimg").css("opacity", 0);
+		setTimeout(function(){ele.remove();}, 1000);
+	}else
+		$(".bgimg").animate({opacity: 0}, 1000, function(){$(this).remove();});
+	newe = $("<div class='bgimg' />").css("background", "url(Pictures/"+bg+") center center no-repeat").appendTo("body")
+	if($.browser.webkit){
+		setTimeout(function(){newe.css("opacity", 1);}, 10);
+	}else{
+		newe.hide().fadeIn(1000);
+	}
+	bglist.push(bg);
+	setTimeout(shuffleBg, 10000);
 }
 
 /* Socket system */
@@ -245,6 +295,7 @@ $(function(){
 		$("#songfinder").get(0).focus();
 	});
 	$("#songfinder").keyup(function(e){
+		console.log(e.which);
 		if(e.which == 37){ //left
 		}else if(e.which == 38){ //up
 			selPos -= 1;
@@ -259,9 +310,15 @@ $(function(){
 			e.preventDefault();
 		}else if(e.which == 13){
 			socket.send({type: "queue", name: "900159"});
+		}else if(e.which == 35){
+			socket.send({type: "stop"});
 		}else{
 			socket.send({type: "find", name: this.value});
 		}
+	});
+	$.getJSON("pictures.json", function(d){
+		bglist = d;
+		shuffleBg();
 	});
 });
 </script>
@@ -273,6 +330,7 @@ $(function(){
 		
 	</div>
 </div>
+<div id="info"><div id='songname'></div><div id='artist'></div></div>
 <div id="lyric">
 <p id="ly1"></p>
 <p id="ly2"></p>
