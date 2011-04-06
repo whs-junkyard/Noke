@@ -4,6 +4,8 @@ var io = require('socket.io');
 var proc = require('child_process');
 var midicore = require('./midicore');
 
+var playing, queue=[];
+
 /* Web system */
 var app = express.createServer();
 app.configure('development', function(){
@@ -65,18 +67,36 @@ midiproc.stderr.on('data', function(d){
 
 /* Socket system */
 var socket = io.listen(app);
-var playing;
+socket.on('connection', function(client){ 
+	client.on('message', function(d){
+		if(d.type == "find"){
+			client.send({type: "find", data: ["เธอจะอยู่กับฉันตลอดไป"]});
+		}else if(d.type == "queue"){
+			if(!d.name.match(/^([0-9A-Z]+)$/)){
+				return;
+			}
+			queue.push(d.name);
+		}
+	});
+});
 
 function midiPoller(){
 	midicore.send(["isplay", "bpm"], function(d){
 		d['song'] = playing;
-		socket.broadcast(JSON.stringify(d));
+		d['queue'] = queue;
+		socket.broadcast({"type": "song", "data": d});
 		if(d.isplay){
 			midicore.send(["time", "key", "ctick", "mxtick", "resolution"], function(d){
-				socket.broadcast(JSON.stringify(d));
+				socket.broadcast({"type": "song", "data": d});
 				setTimeout(midiPoller, d.resolution);
 			});
 		}else{
+			playing=null;
+			if(queue){
+				song = queue.shift();
+				playing = song;
+				midicore.send(["sq midi/Midi/"+song+".mid", "p"]);
+			}
 			setTimeout(midiPoller, 100);
 		}
 	});
@@ -94,7 +114,7 @@ function pollMidicore(){
 		midicore.clear();
 		console.log("Noke ready. http://localhost:9998/");
 		playing = "900159";
-		midicore.send(["sq midi/Midi/900159.mid", "p"]);
+		//midicore.send(["sq midi/Midi/900159.mid", "p"]);
 		setTimeout(midiPoller, 100);
 	});
 }

@@ -7,6 +7,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <style>
 body{
+	font-family: "Garuda";
 	overflow: hidden;
 	background: #000055;
 }
@@ -14,7 +15,6 @@ body{
 	position: absolute;
 	bottom: 0px;
 	width: 100%;
-	font-family: "Garuda";
 	font-size: 48pt;
 	font-weight: bold;
 	padding-bottom: 30px;
@@ -57,6 +57,16 @@ body{
 	background: transparent;
 	border: none;
 	width: 100%;
+	color: white;
+	-webkit-text-stroke: 1px blue;
+}
+#findout{
+	color: gray;
+	font-size: 16pt;
+}
+#findout div.selected{
+	background: red;
+	color: white;
 }
 </style>
 <script>
@@ -137,10 +147,12 @@ function handleLyrics(){
 			break;
 		}
 	}
-	other.html("<span>"+lyric[line+1]+"</span>");
-	// in case it over-wide
-	if($("span", other).width() > $(document).width()-50){
-		$("span", other).css("font-size", "32pt").css("webkitTextStroke", "1px white");
+	if(lyric[line+1]){
+		other.html("<span>"+lyric[line+1]+"</span>");
+		// in case it over-wide
+		if($("span", other).width() > $(document).width()-50){
+			$("span", other).css("font-size", "32pt").css("webkitTextStroke", "1px white");
+		}
 	}
 	// "slice"
 	done = lyric[line].substr(0, pos);
@@ -191,22 +203,66 @@ function initState(){
 
 /* Socket system */
 var socket = new io.Socket();
+var selPos = 0;
 socket.connect();
 socket.on('message', function(msg){
-	msg = JSON.parse(msg);
-	for(var i in msg){
-		data[i] = msg[i];
+	if(msg.type == "song"){
+		msg = msg.data;
+		for(var i in msg){
+			data[i] = msg[i];
+		}
+		if(data.song != lastSong) initNewSong();
+		if(data.isplay != lastState) initState();
+		if(data.isplay)
+			handleLyrics();
+	}else if(msg.type == "find"){
+		html = "";
+		$.each(msg.data, function(){
+			html += "<div>"+msg.data+"</div>";
+		});
+		$("#findout").html(html);
+		selPos = 0;
+		updatePos();
 	}
-	if(data.song != lastSong) initNewSong();
-	if(data.isplay != lastState) initState();
-	if(data.isplay)
-		handleLyrics();
+});
+
+/* Finder */
+function updatePos(){
+	$("#findout div.selected").removeClass("selected");
+	$("#findout div:eq("+selPos+")").addClass("selected");
+}
+$(function(){
+	$(window).keydown(function(){
+		$("#songfinder").get(0).focus();
+	});
+	$("#songfinder").keyup(function(e){
+		if(e.which == 37){ //left
+		}else if(e.which == 38){ //up
+			selPos -= 1;
+			if(selPos < 0) selPos = 0;
+			updatePos();
+			e.preventDefault();
+		}else if(e.which == 39){ //right
+		}else if(e.which == 40){ //down
+			if($(".findout div").length > selPos+1)
+				selPos += 1;
+			updatePos();
+			e.preventDefault();
+		}else if(e.which == 13){
+			socket.send({type: "queue", name: "900159"});
+		}else{
+			socket.send({type: "find", name: this.value});
+		}
+	});
 });
 </script>
 </head>
 <body>
 <div id="song">
 	<input type="text" id="songfinder" />
+	<div id="findout">
+		
+	</div>
 </div>
 <div id="lyric">
 <p id="ly1"></p>
