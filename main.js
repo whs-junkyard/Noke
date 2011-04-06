@@ -70,7 +70,9 @@ var socket = io.listen(app);
 socket.on('connection', function(client){ 
 	client.on('message', function(d){
 		if(d.type == "find"){
-			client.send({type: "find", data: ["เธอจะอยู่กับฉันตลอดไป"]});
+			if(d.name) out = ["เธอจะอยู่กับฉันตลอดไป", "กาก", "กาก", "กาก", "กาก", "กาก", "กาก", "กาก", "กาก", "กาก"];
+			else out =[];
+			client.send({type: "find", data: out});
 		}else if(d.type == "queue"){
 			if(!d.name.match(/^([0-9A-Z]+)$/)){
 				return;
@@ -114,7 +116,6 @@ function pollMidicore(){
 		midicore.clear();
 		console.log("Noke ready. http://localhost:9998/");
 		playing = "900159";
-		//midicore.send(["sq midi/Midi/900159.mid", "p"]);
 		setTimeout(midiPoller, 100);
 	});
 }

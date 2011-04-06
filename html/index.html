@@ -4,6 +4,7 @@
 <title>Noke</title>
 <meta charset="utf-8">
 <script src="jq.js"></script>
+<script src="scrollto.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <style>
 body{
@@ -63,6 +64,11 @@ body{
 #findout{
 	color: gray;
 	font-size: 16pt;
+	height: 100px;
+	overflow: auto;
+}
+#findout::-webkit-scrollbar {
+	display: none;
 }
 #findout div.selected{
 	background: red;
@@ -211,16 +217,18 @@ socket.on('message', function(msg){
 		for(var i in msg){
 			data[i] = msg[i];
 		}
-		if(data.song != lastSong) initNewSong();
+		if(data.song != lastSong && data.isplay) initNewSong();
 		if(data.isplay != lastState) initState();
 		if(data.isplay)
 			handleLyrics();
 	}else if(msg.type == "find"){
-		html = "";
-		$.each(msg.data, function(){
-			html += "<div>"+msg.data+"</div>";
+		$("#findout").empty();
+		$.each(msg.data, function(i,d){
+			$("<div />").text(d).click(function(){
+				selPos = i;
+				updatePos();
+			}).appendTo("#findout");
 		});
-		$("#findout").html(html);
 		selPos = 0;
 		updatePos();
 	}
@@ -229,7 +237,8 @@ socket.on('message', function(msg){
 /* Finder */
 function updatePos(){
 	$("#findout div.selected").removeClass("selected");
-	$("#findout div:eq("+selPos+")").addClass("selected");
+	d=$("#findout div:eq("+selPos+")").addClass("selected");
+	$("#findout").scrollTo(d);
 }
 $(function(){
 	$(window).keydown(function(){
@@ -244,7 +253,7 @@ $(function(){
 			e.preventDefault();
 		}else if(e.which == 39){ //right
 		}else if(e.which == 40){ //down
-			if($(".findout div").length > selPos+1)
+			if($("#findout div").length > selPos+1)
 				selPos += 1;
 			updatePos();
 			e.preventDefault();
