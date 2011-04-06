@@ -8,7 +8,7 @@
 <style>
 body{
 	overflow: hidden;
-	background: #eee;
+	background: #000055;
 }
 #lyric{
 	position: absolute;
@@ -22,6 +22,7 @@ body{
 	-webkit-text-stroke: 3px white;
 	color: #ccc;
 	text-align: center;
+	white-space: nowrap;
 }
 #lyric .done, #lyric .doing{
 	color: blue;
@@ -39,12 +40,23 @@ body{
 }
 #lyric .done, #lyric .all{
 	position: absolute;
-	white-space: nowrap;
 	overflow: hidden;
 	text-align: left;
 }
 #lyric .done{
 	z-index: 200;
+}
+#song{
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	width: 90%;
+}
+#songfinder{
+	font-size: 24pt;
+	background: transparent;
+	border: none;
+	width: 100%;
 }
 </style>
 <script>
@@ -125,17 +137,31 @@ function handleLyrics(){
 			break;
 		}
 	}
-	other.html(lyric[line+1]);
+	other.html("<span>"+lyric[line+1]+"</span>");
+	// in case it over-wide
+	if($("span", other).width() > $(document).width()-50){
+		$("span", other).css("font-size", "32pt").css("webkitTextStroke", "1px white");
+	}
 	// "slice"
 	done = lyric[line].substr(0, pos);
 	thisOne = lyric[line].substr(pos, 1);
 	notDone = lyric[line].substr(pos+1);
 	target.html("<div style='visibility: hidden;'>.</div><div class='karaoke'><div class='done'><span class='rdone'>" + done + "</span><span class='doing'>" + thisOne+"</span></div><div class='all'>"+lyric[line]+"</div></div>");
 	// find out the width
-	percent = ((data.ctick - cursor[p]) / (cursor[p+1] - cursor[p]))
-	ow = $(".done", target).width();
+	nc = cursor[p+1];
+	if(!nc){
+		nc = data.mxtick;
+	}
+	percent = ((data.ctick - cursor[p]) / (nc - cursor[p]));
 	ow2 = $(".rdone", target).width();
 	ow3 = $(".doing", target).width();
+	tw = $(".all", target).width()
+	// in case it over-wide
+	if(tw > $(document).width()-50){
+		$(".karaoke", target).css("font-size", "32pt").css("webkitTextStroke", "1px white");
+		ow2 = $(".rdone", target).width();
+		ow3 = $(".doing", target).width();
+	}
 	$(".done", target).css("width", ow2 + (ow3 * percent));
 	// center it
 	$(".done, .all", target).css("left", ($(document).width() / 2) - ($(".all").width()/2))
@@ -179,6 +205,9 @@ socket.on('message', function(msg){
 </script>
 </head>
 <body>
+<div id="song">
+	<input type="text" id="songfinder" />
+</div>
 <div id="lyric">
 <p id="ly1"></p>
 <p id="ly2"></p>

@@ -68,13 +68,13 @@ var socket = io.listen(app);
 var playing;
 
 function midiPoller(){
-	midicore.send(["isplay", "bpm", "ctick"], function(d){
+	midicore.send(["isplay", "bpm"], function(d){
 		d['song'] = playing;
 		socket.broadcast(JSON.stringify(d));
 		if(d.isplay){
-			midicore.send(["time", "key", "ctick"], function(d){
+			midicore.send(["time", "key", "ctick", "mxtick", "resolution"], function(d){
 				socket.broadcast(JSON.stringify(d));
-				setTimeout(midiPoller, 100);
+				setTimeout(midiPoller, d.resolution);
 			});
 		}else{
 			setTimeout(midiPoller, 100);
