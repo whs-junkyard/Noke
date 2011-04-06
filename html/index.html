@@ -13,18 +13,38 @@ body{
 #lyric{
 	position: absolute;
 	bottom: 0px;
-	text-align: center;
 	width: 100%;
+	font-family: "Garuda";
 	font-size: 48pt;
+	font-weight: bold;
 	padding-bottom: 30px;
 	line-height: 1.5em;
-	text-shadow: white 0px 0px 10px;
+	-webkit-text-stroke: 3px white;
+	color: #ccc;
+	text-align: center;
 }
-#lyric .done{
-	color: red;
+#lyric .done, #lyric .doing{
+	color: blue;
+	-webkit-text-fill-color: blue;
+}
+#lyric .doing{
+	overflow: hidden;
 }
 #lyric p{
 	margin:0;
+	width: 100%;
+}
+.karaoke{
+	width: 100%;
+}
+#lyric .done, #lyric .all{
+	position: absolute;
+	white-space: nowrap;
+	overflow: hidden;
+	text-align: left;
+}
+#lyric .done{
+	z-index: 200;
 }
 </style>
 <script>
@@ -72,7 +92,7 @@ function handleLyrics(){
 	p = 0;
 	for(var i in cursor){
 		if(cursor[i] > data.ctick) break;
-		p=i;
+		p=parseInt(i);
 	}
 	newl = sLyric.substr(0, p) + "$!!!!" + sLyric.substr(p+1)
 	l = newl.split("\n");
@@ -97,6 +117,10 @@ function handleLyrics(){
 		if(lyric[line][pos] === undefined) break;
 		if(lyric[line][pos].match(/[ึุูี๊ัํ่๋้็ื์ิฺำ]/)){
 			pos += 1;
+			p+=1;
+		}else if(lyric[line][pos+1] && lyric[line][pos+1].match(/[ึุูี๊ัํ่๋้็ื์ิฺำ]/)){
+			pos += 2;
+			p+=2;
 		}else{
 			break;
 		}
@@ -104,8 +128,18 @@ function handleLyrics(){
 	other.html(lyric[line+1]);
 	// "slice"
 	done = lyric[line].substr(0, pos);
-	notDone = lyric[line].substr(pos);
-	target.html("<span class='done'>" + done + "</span>" + notDone);
+	thisOne = lyric[line].substr(pos, 1);
+	notDone = lyric[line].substr(pos+1);
+	target.html("<div style='visibility: hidden;'>.</div><div class='karaoke'><div class='done'><span class='rdone'>" + done + "</span><span class='doing'>" + thisOne+"</span></div><div class='all'>"+lyric[line]+"</div></div>");
+	// find out the width
+	percent = ((data.ctick - cursor[p]) / (cursor[p+1] - cursor[p]))
+	ow = $(".done", target).width();
+	ow2 = $(".rdone", target).width();
+	ow3 = $(".doing", target).width();
+	$(".done", target).css("width", ow2 + (ow3 * percent));
+	// center it
+	$(".done, .all", target).css("left", ($(document).width() / 2) - ($(".all").width()/2))
+		.css("top", target.position().top);
 }
 
 /**
