@@ -29,7 +29,10 @@ app.configure('development', function(){
 });
 app.get('/pictures.json', function(req, res){
 	res.contentType('json');
-	fs.readdir("midi/Pictures/", function(err, f){
+	fs.readdir("~/midi/Pictures/", function(err, f){
+		if(!f){
+			return res.send("[]");
+		}
 		f = f.filter(function(x){
 			return x.match(/\.(gif|jp[e]*g|png)$/);
 		});
@@ -44,7 +47,7 @@ app.get('/:file.lyr', function(req, res){
 		return;
 	}
 	res.contentType('text');
-	fs.readFile('midi/Lyrics/'+f+".lyr", function (err, data) {
+	fs.readFile('~/midi/Lyrics/'+f+".lyr", function (err, data) {
 		if (err) throw err;
 		conv = new Iconv('TIS-620', 'UTF-8');
 		res.send(conv.convert(data));
@@ -59,7 +62,7 @@ app.get('/:file.cur', function(req, res){
 	}
 	// get resolution
 	midicore.resolution(function(mdres){
-		fs.readFile('midi/Cursor/'+f+".cur", function (err, data) {
+		fs.readFile('~/midi/Cursor/'+f+".cur", function (err, data) {
 			if (err) throw err;
 			cursor = [];
 			i=0;
@@ -159,7 +162,7 @@ function midiPoller(){
 		}else{
 			if(queue.length > 0){
 				song = queue.shift();
-				midicore.send(["sq midi/Midi/"+song+".mid", "p"]);
+				midicore.send(["sq ~/midi/Midi/"+song+".mid", "p"]);
 				playing = song;
 			}else{
 				playing=null;

@@ -5,7 +5,7 @@
  * or later.
  */
 var dgram = require('dgram');
-var client = dgram.createSocket("udp6");
+var client = dgram.createSocket("udp4");
 exports.debug = false;
 
 /**
