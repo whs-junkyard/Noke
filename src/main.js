@@ -157,7 +157,7 @@ function midiPoller(){
 		if(d.isplay){
 			midicore.send(["time", "key", "ctick", "mxtick", "resolution"], function(d){
 				socket.broadcast({"type": "song", "data": d});
-				setTimeout(midiPoller, d.resolution);
+				setTimeout(midiPoller, d.resolution*10);
 			});
 		}else{
 			if(queue.length > 0){
