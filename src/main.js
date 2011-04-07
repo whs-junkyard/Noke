@@ -186,8 +186,10 @@ function finder(query){
 			result.push(formatData(d));
 			return true;
 		}
-		for(var x in [1,2,4]){
-			if(d[x].indexOf(query) != -1){
+		ser = [1,2,4];
+		for(var x in ser){
+			x = ser[x];
+			if(d[x].toLowerCase().indexOf(query) != -1){
 				result.push(formatData(d));
 				break;
 			}
