@@ -61,6 +61,7 @@ app.get('/:file.lyr', function(req, res){
 	res.contentType('text');
 	// find it!
 	function foundCb(f){
+		foundCb=function(){};
 		fs.readFile(f, function (err, data) {
 			if (err) return;
 			conv = new Iconv('TIS-620', 'UTF-8');
@@ -99,6 +100,7 @@ app.get('/:file.cur', function(req, res){
 	// get resolution
 	midicore.resolution(function(mdres){
 		function foundCb(f){
+			foundCb=function(){};
 			fs.readFile(f, function (err, data) {
 				if (err) throw err;
 				cursor = [];
@@ -287,6 +289,7 @@ function midiPoller(){
 				song = queue.shift();
 				// find
 				function foundCb(f){
+					foundCb=function(){};
 					midicore.send(["s", "sq "+f, "p"]);
 				}
 				if(cache[song+".mid"]){

@@ -1,4 +1,5 @@
 *~
 src/midicore
+src/settings.js
 build
 noke.run

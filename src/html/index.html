@@ -8,7 +8,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <style>
 body{
-	font-family: "Garuda";
+	font-family: "Garuda", sans-serif;
 	overflow: hidden;
 	background: #000055;
 }
@@ -26,6 +26,7 @@ body{
 	text-align: center;
 	white-space: nowrap;
 	text-shadow: rgba(0,0,0,0.8) 0px 2px 5px;
+	font-family: "Garuda", "Thonburi";
 }
 #lyric .done, #lyric .doing{
 	color: blue;
@@ -85,7 +86,7 @@ body{
 	color: white;
 }
 #findout small{
-	font-family: Waree;
+	font-family: Waree, sans-serif;
 	font-size: 12pt;
 }
 #info{
@@ -131,6 +132,7 @@ body{
 	-webkit-border-radius: 10px;
 	-moz-border-radius: 10px;
 	z-index: 1000;
+	font-family: "Waree", sans-serif;
 }
 #channels table{
 	border-collapse: collapse;
@@ -231,6 +233,7 @@ function handleLyrics(){
 	done = lyric[line].substr(0, pos);
 	thisOne = lyric[line].substr(pos, 1);
 	notDone = lyric[line].substr(pos+1);
+	console.log([pos,thisOne,notDone]);
 	target.html("<div style='visibility: hidden;'>.</div><div class='karaoke'><div class='done'><span class='rdone'>" + done + "</span><span class='doing'>" + thisOne+"</span></div><div class='all'>"+lyric[line]+"</div></div>");
 	// find out the width
 	nc = cursor[p+1];
