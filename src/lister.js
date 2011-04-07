@@ -8,11 +8,18 @@ var exec = require('child_process').exec;
 var settings = require('./settings');
 
 function lyrParse(f){
-	data = fs.readFile(f, function(err, data){
-		conv = new Iconv('TIS-620', 'UTF-8');
+	data = fs.readFile(f, function(err, odata){
+		conv = new Iconv('TIS-620', 'UTF-8//IGNORE');
 		try{
-			data = conv.convert(data);
+			data = conv.convert(odata);
 		}catch(e){
+			console.warn("Cannot convert: "+f);
+			console.log(e);
+			return;
+		}
+		if(!data){
+			console.warn("Convert error: "+f);
+			return;
 		}
 		data = data.toString("utf-8");
 		data = data.split("\n");
@@ -24,7 +31,7 @@ function lyrParse(f){
 			"key": data[2].replace(/^[\r\n]*|[\r\n]*$/g, ""),
 			"lyric": data.slice(4)
 		};
-		outstream.write(f + "^" + data.name + "^" + data.artist + "^" + data.key + "^" + data.lyric.slice(0,3).join("").replace(/[\r\n]*/g, ""));
+		outstream.write(f + "^" + data.name + "^" + data.artist + "^" + data.key + "^" + data.lyric.slice(0,3).join("").replace(/[\r\n]*/g, "")+"\n");
 	});
 }
 
@@ -34,9 +41,9 @@ function scanfolder(folder){
 			i = path.join(folder, i);
 			stat = fs.statSync(i);
 			if(stat.isDirectory()){
-				console.log(i);
 				scanfolder(i);
 			}else{
+				if(Math.random() < 0.0001) console.log(i);
 				try{
 					lyrParse(i);
 				}catch(e){console.warn("Cannot parse "+i+" : "+e);}

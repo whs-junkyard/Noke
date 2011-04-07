@@ -311,6 +311,7 @@ socket.on('message', function(msg){
 	}else if(msg.type == "find"){
 		$("#findout").empty();
 		$.each(msg.data, function(i,d){
+			if(!d.lyric) console.log(d);
 			$("<div><strong>"+d.name+"</strong> <small>"+d.artist+" | "+d.code+" | "+d.key+" | "+d.lyric.replace(/</g, "&lt;").replace(/>/g, "&gt;")+"</small></div>").data("id", d.code).click(function(){
 				selPos = i;
 				updatePos();
@@ -333,6 +334,7 @@ function updatePos(){
 	d=$("#findout div:eq("+selPos+")").addClass("selected");
 	$("#findout").scrollTo(d);
 }
+var searchTimeout;
 $(function(){
 	$(window).keydown(function(){
 		$("#songfinder").get(0).focus();
@@ -362,24 +364,37 @@ $(function(){
 		$("#channels").hide();
 		if(e.which == 37){ //left
 		}else if(e.which == 38){ //up
-			selPos -= 1;
-			if(selPos < 0) selPos = 0;
+			selPos--;
+			if(selPos < 0) selPos = $("#findout div").length-1;
 			updatePos();
 			e.preventDefault();
 		}else if(e.which == 39){ //right
 		}else if(e.which == 40){ //down
 			if($("#findout div").length > selPos+1)
-				selPos += 1;
+				selPos++;
+			else
+				selPos = 0;
 			updatePos();
 			e.preventDefault();
 		}else if(e.which == 13){
-			socket.send({type: "queue", name: "900159"});
+			sel = $("#findout .selected");
+			if(sel.length == 0){
+				return;
+			}
+			socket.send({type: "queue", name: sel.data("id")});
 		}else if(e.which == 35){
 			socket.send({type: "stop"});
+		}else if(e.which == 27){
+			$("#findout div").empty();
+			selPos = 0;
+			$("#songfinder").val("");
 		}else{
-			if(this.value != "")
-				socket.send({type: "find", name: this.value});
-			else
+			if(this.value != ""){
+				clearTimeout(searchTimeout);
+				setTimeout(function(){
+					socket.send({type: "find", name: $("#songfinder").val()});
+				}, 250);
+			}else
 				$("#findout").empty();
 		}
 	});

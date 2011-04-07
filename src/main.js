@@ -30,7 +30,7 @@ function fisherYates ( myArray ) {
 var app = express.createServer();
 app.configure('development', function(){
     app.use(express.static(__dirname + '/html'));
-    app.use(express.static(__dirname + '/midi'));
+    app.use(express.static(settings.path));
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 /**
@@ -38,7 +38,7 @@ app.configure('development', function(){
  */
 app.get('/pictures.json', function(req, res){
 	res.contentType('json');
-	fs.readdir("~/midi/Pictures/", function(err, f){
+	fs.readdir(path.join(settings.path, "Pictures"), function(err, f){
 		if(!f){
 			return res.send("[]");
 		}
@@ -164,10 +164,12 @@ if(settings.midicore){
 }
 
 /* Finder */
-var file = fs.readFileSync(settings.lister, "UTF-8").split("\n");
+var file = fs.readFileSync(settings.lister, "UTF-8").replace(/\n$/, "").split("\n");
 file = file.map(function(d){return d.split("^");});
 function finder(query){
 	result = [];
+	totalFound = 0;
+	resultType = [[],[],[]];
 	searchNum = query.match(/^[0-9]+$/);
 	function formatData(d){
 		// push to cache too
@@ -181,19 +183,33 @@ function finder(query){
 			"lyric": d[4]
 		};
 	}
-	file.forEach(function(d){
+	for(var d in file){
+		d = file[d];
 		if(searchNum && path.basename(d[0]).replace(/\.lyr$/i, "").indexOf(query) == 0){
+			totalFound++;
 			result.push(formatData(d));
-			return true;
+			continue;
 		}
 		ser = [1,2,4];
-		for(var x in ser){
-			x = ser[x];
-			if(d[x].toLowerCase().indexOf(query) != -1){
+		for(var i in ser){
+			x = ser[i];
+			if(d[x].toLowerCase().indexOf(query) == 0){
+				totalFound++;
 				result.push(formatData(d));
 				break;
 			}
+			if(d[x].toLowerCase().indexOf(query) != -1){
+				totalFound++;
+				resultType[i].push(formatData(d));
+				break;
+			}
 		}
+		if(totalFound > 100) break;
+	}
+	resultType.forEach(function(v){
+		v.forEach(function(x){
+			result.push(x);
+		});
 	});
 	return result;
 }
@@ -208,6 +224,7 @@ socket.on('connection', function(client){
 		}else if(d.type == "stop"){
 			midicore.stop();
 		}else if(d.type == "queue"){
+			d.name = d.name.toString();
 			if(!d.name.match(/^([0-9A-Z]+)$/)){
 				return;
 			}
@@ -275,7 +292,7 @@ function midiPoller(){
 				if(cache[song+".mid"]){
 					foundCb(cache[song+".mid"]);
 				}else{
-					basepath = path.join(settings.path, "Midi", song[0], song);
+					basepath = path.join(settings.path, "Song", song[0], song);
 					fs.stat(basepath+".mid", function(err){
 						if(!err){
 							cache[song+".mid"] = basepath+".mid";
