@@ -64,7 +64,7 @@ app.get('/:file.lyr', function(req, res){
 		foundCb=function(){};
 		fs.readFile(f, function (err, data) {
 			if (err) return;
-			conv = new Iconv('TIS-620', 'UTF-8');
+			conv = new Iconv('TIS-620', 'UTF-8//IGNORE');
 			res.send(conv.convert(data));
 		});
 	}
@@ -172,7 +172,7 @@ function finder(query){
 	result = [];
 	totalFound = 0;
 	resultType = [[],[],[]];
-	searchNum = query.match(/^[0-9]+$/);
+	searchNum = query.match(/^[a-zA-Z0-9]+$/);
 	function formatData(d){
 		// push to cache too
 		cache[path.basename(d[0]).toLowerCase()] = d[0];
@@ -187,6 +187,9 @@ function finder(query){
 	}
 	for(var d in file){
 		d = file[d];
+		if(searchNum && path.basename(d[0]).replace(/\.lyr$/i, "") == query){
+			return [formatData(d)];
+		}
 		if(searchNum && path.basename(d[0]).replace(/\.lyr$/i, "").indexOf(query) == 0){
 			totalFound++;
 			result.push(formatData(d));
@@ -230,7 +233,9 @@ socket.on('connection', function(client){
 			if(!d.name.match(/^([0-9A-Z]+)$/)){
 				return;
 			}
-			queue.push(d.name);
+			ds = finder(d.name);
+			if(!ds) return;
+			queue.push(ds[0]);
 		}else if(d.type == "mute"){
 			midicore.mute(parseInt(d.channel)-1, function(){
 				channelPoller(false);
@@ -280,13 +285,14 @@ function midiPoller(){
 		d['queue'] = queue;
 		socket.broadcast({"type": "song", "data": d});
 		if(d.isplay){
-			midicore.send(["time", "key", "ctick", "mxtick", "resolution"], function(d){
+			midicore.send(["cpitch", "bpm", "ctick", "mxtick", "resolution"], function(d){
 				socket.broadcast({"type": "song", "data": d});
 				setTimeout(midiPoller, d.resolution);
 			});
 		}else{
 			if(queue.length > 0){
-				song = queue.shift();
+				songData = queue.shift();
+				song = songData.code;
 				// find
 				function foundCb(f){
 					foundCb=function(){};
