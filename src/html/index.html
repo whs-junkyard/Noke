@@ -29,8 +29,8 @@ body{
 }
 #lyric .done, #lyric .doing{
 	color: blue;
-	-webkit-text-stroke: 3px cornflowerblue;
-	-moz-text-stroke: 3px cornflowerblue;
+	-webkit-text-stroke: 1px cornflowerblue;
+	-moz-text-stroke: 1px cornflowerblue;
 }
 #lyric .doing{
 	overflow: hidden;
@@ -65,7 +65,7 @@ body{
 	-webkit-text-stroke: 1px blue;
 	-moz-text-stroke: 1px blue;
 }
-#findout{
+#findout, #queue{
 	color: gray;
 	font-size: 16pt;
 	max-height: 150px;
@@ -75,16 +75,16 @@ body{
 #findout::-webkit-scrollbar {
 	display: none;
 }
-#findout div{
+#findout div, #queue div{
 	width: 100%;
 	overflow:hidden;
 	white-space: nowrap;
 }
-#findout div.selected{
+div.selected{
 	background: rgba(255,0,0,0.8);
 	color: white;
 }
-#findout small{
+#findout small, #queue small{
 	font-family: Waree;
 	font-size: 12pt;
 }
@@ -139,6 +139,14 @@ body{
 	border: black solid 1px;
 	padding: 5px;
 	background: white;
+}
+#queue{
+	position: absolute;
+	top: 2.8em;
+	left: 0px;
+	height: 200px;
+	overflow-y: auto;
+	overflow-x: hidden;
 }
 </style>
 <script>
@@ -308,16 +316,23 @@ socket.on('message', function(msg){
 		if(data.isplay != lastState) initState();
 		if(data.isplay)
 			handleLyrics();
+		$("#queue").empty();
+		$.each(data.queue, function(i,d){
+			$("<div><strong>"+d.name+"</strong> <small>"+d.artist+" | "+d.code+" | "+d.key+" | "+d.lyric.replace(/</g, "&lt;").replace(/>/g, "&gt;")+"</small></div>").data("id", d.code).click(function(){
+				selPos = i;
+				updatePos();
+			}).appendTo("#queue");
+		});
 	}else if(msg.type == "find"){
 		$("#findout").empty();
 		$.each(msg.data, function(i,d){
-			if(!d.lyric) console.log(d);
 			$("<div><strong>"+d.name+"</strong> <small>"+d.artist+" | "+d.code+" | "+d.key+" | "+d.lyric.replace(/</g, "&lt;").replace(/>/g, "&gt;")+"</small></div>").data("id", d.code).click(function(){
 				selPos = i;
 				updatePos();
 			}).appendTo("#findout");
 		});
-		selPos = 0;
+		if($("#findout div").length < selPos)
+			selPos = 0;
 		updatePos();
 	}else if(msg.type == "channel"){
 		channels = msg.data;
@@ -329,17 +344,25 @@ socket.on('message', function(msg){
 
 /* Finder */
 function updatePos(){
-	if($("#findout div").length == 0)return;
-	$("#findout div.selected").removeClass("selected");
-	d=$("#findout div:eq("+selPos+")").addClass("selected");
-	$("#findout").scrollTo(d);
+	sText = $("#songfinder").val();
+	if(sText){
+		if($("#findout div").length == 0)return;
+		$("#findout div.selected").removeClass("selected");
+		d=$("#findout div:eq("+selPos+")").addClass("selected");
+		$("#findout").scrollTo(d);
+	}else{
+		if($("#queue div").length == 0)return;
+		$("#queue div.selected").removeClass("selected");
+		d=$("#queue div:eq("+selPos+")").addClass("selected");
+		$("#queue").scrollTo(d);
+	}
 }
 var searchTimeout;
 $(function(){
 	$(window).keydown(function(){
 		$("#songfinder").get(0).focus();
 	});
-	$("#channels").hide();
+	$("#channels,#queue").hide();
 	$("#songfinder").keydown(function(e){
 		if(e.which == 17){ // ctrl
 			$("#channels").show();
@@ -361,16 +384,29 @@ $(function(){
 				return false;
 			}
 		}
-		$("#channels").hide();
-		if(e.which == 37){ //left
-		}else if(e.which == 38){ //up
+		$("#channels,#queue").hide();
+		sText = $("#songfinder").val();
+		if(e.which == 38 && sText != ""){ //up
 			selPos--;
 			if(selPos < 0) selPos = $("#findout div").length-1;
 			updatePos();
 			e.preventDefault();
-		}else if(e.which == 39){ //right
-		}else if(e.which == 40){ //down
+		}else if(e.which == 38){
+			$("#queue").show();
+			selPos--;
+			if(selPos < 0) selPos = $("#queue div").length-1;
+			updatePos();
+			e.preventDefault();
+		}else if(e.which == 40 && sText != ""){ //down
 			if($("#findout div").length > selPos+1)
+				selPos++;
+			else
+				selPos = 0;
+			updatePos();
+			e.preventDefault();
+		}else if(e.which == 40){
+			$("#queue").show();
+			if($("#queue div").length > selPos+1)
 				selPos++;
 			else
 				selPos = 0;
@@ -385,17 +421,21 @@ $(function(){
 		}else if(e.which == 35){
 			socket.send({type: "stop"});
 		}else if(e.which == 27){
-			$("#findout div").empty();
+			$("#findout").empty();
 			selPos = 0;
 			$("#songfinder").val("");
+			$("#queue").hide();
 		}else{
 			if(this.value != ""){
 				clearTimeout(searchTimeout);
 				setTimeout(function(){
 					socket.send({type: "find", name: $("#songfinder").val()});
-				}, 250);
-			}else
+				}, 500);
+			}else{
+				clearTimeout(searchTimeout);
 				$("#findout").empty();
+				$("#queue").hide();
+			}
 		}
 	});
 	$.getJSON("pictures.json", function(d){
@@ -417,6 +457,8 @@ $(function(){
 	<div id="findout">
 		
 	</div>
+</div>
+<div id="queue">
 </div>
 <div id="channels">
 	<strong>Channel status (Ctrl+1 to toggle channel 1)</strong>
