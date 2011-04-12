@@ -150,9 +150,22 @@ div.selected{
 	overflow-y: auto;
 	overflow-x: hidden;
 }
+#tempo{
+	position: absolute;
+	right: 10px; top: 10px;
+	text-align: center;
+	background: rgba(0,0,0,0.8);
+	color: white;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	font-size: 18pt;
+	padding: 20px;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+}
 </style>
 <script>
-var lastSong, lastState, cursor, lyric, sLyric, songInfo, bglist;
+var lastSong, lastState, lastTempo, cursor, lyric, sLyric, songInfo, bglist;
 var channels;
 var data = {};
 
@@ -188,6 +201,7 @@ function loadCursor(){
 	});
 }
 
+
 /**
  * Show the lyrics
  */
@@ -218,14 +232,22 @@ function handleLyrics(){
 		other = $("#ly1");
 	}
 	// prevent vowels
+	done = lyric[line].substr(0, pos);
+	thisOne = lyric[line].substr(pos, 1);
+	stopNext = false;
 	while(true){
 		if(lyric[line][pos] === undefined) break;
 		if(lyric[line][pos].match(/[ึุูี๊ัํ่๋้็ื์ิฺำ]/)){
+			thisOne += lyric[line][pos];
 			pos += 1;
 			p+=1;
-		}else if(lyric[line][pos+1] && lyric[line][pos+1].match(/[ึุูี๊ัํ่๋้็ื์ิฺำ]/)){
+			cursor[p] = cursor[p-1];
+		}else if(!stopNext && lyric[line][pos+1] && lyric[line][pos+1].match(/[ึุูี๊ัํ่๋้็ื์ิฺำ]/)){
+			thisOne += lyric[line][pos+1];
+			cursor[p+1] = cursor[p];
 			pos += 2;
 			p+=2;
+			stopNext = true;
 		}else{
 			break;
 		}
@@ -238,28 +260,42 @@ function handleLyrics(){
 		}
 	}
 	// "slice"
-	done = lyric[line].substr(0, pos);
-	thisOne = lyric[line].substr(pos, 1);
 	notDone = lyric[line].substr(pos+1);
-	console.log([pos,thisOne,notDone]);
+	//console.log([pos, done, thisOne, notDone]);
 	target.html("<div style='visibility: hidden;'>.</div><div class='karaoke'><div class='done'><span class='rdone'>" + done + "</span><span class='doing'>" + thisOne+"</span></div><div class='all'>"+lyric[line]+"</div></div>");
 	// find out the width
 	nc = cursor[p+1];
 	if(!nc) nc = data.mxtick
 	percent = ((data.ctick - cursor[p]) / (nc - cursor[p]));
+	percent = Math.max(percent, 0)
 	ow2 = $(".rdone", target).width();
 	ow3 = $(".doing", target).width();
+	ow3 = Math.max(0, ow3);
 	tw = $(".all", target).width()
 	// in case it over-wide
 	if(tw > $(document).width()-50){
 		$(".karaoke", target).css("font-size", "32pt").css("webkitTextStroke", "1px white");
 		ow2 = $(".rdone", target).width();
-		ow3 = $(".doing", target).width();
+		ow3 = Math.min(0, $(".doing", target).width());
 	}
+	//console.log(ow3 * percent);
 	$(".done", target).css("width", ow2 + (ow3 * percent));
 	// center it
 	$(".done, .all", target).css("left", ($(document).width() / 2) - ($(".all").width()/2))
 		.css("top", target.position().top);
+}
+
+var tempoFade;
+/**
+ * Show tempo change
+ */
+function showTempo(){
+	clearTimeout(tempoFade);
+	$("#tempo").html("<strong>Tempo:</strong> "+parseInt(data.bpm));
+	$("#tempo").fadeIn();
+	tempoFade = setTimeout(function(){
+		$("#tempo").fadeOut();
+	}, 1000);
 }
 
 /**
@@ -295,7 +331,7 @@ function shuffleBg(){
 		setTimeout(function(){ele.remove();}, 1000);
 	}else
 		$(".bgimg").animate({opacity: 0}, 1000, function(){$(this).remove();});
-	newe = $("<div class='bgimg' />").css("background", "url(Pictures/"+bg+") center center no-repeat").appendTo("body")
+	newe = $("<div class='bgimg' />").css("background", "url(Pictures/"+encodeURI(bg)+") center center no-repeat").appendTo("body");
 	if($.browser.webkit){
 		setTimeout(function(){newe.css("opacity", 1);}, 10);
 	}else{
@@ -320,6 +356,10 @@ socket.on('message', function(msg){
 		if(data.isplay)
 			handleLyrics();
 		$("#queue").empty();
+		if(data.bpm != lastTempo){
+			showTempo();
+			lastTempo = data.bpm;
+		}
 		$.each(data.queue, function(i,d){
 			$("<div><strong>"+d.name+"</strong> <small>"+d.artist+" | "+d.code+" | "+d.key+" | "+d.lyric.replace(/</g, "&lt;").replace(/>/g, "&gt;")+"</small></div>").data("id", d.code).click(function(){
 				selPos = i;
@@ -343,6 +383,11 @@ socket.on('message', function(msg){
 			$("#channels td:eq("+i+")").css("color", d?"green":"red");
 		});
 	}
+});
+socket.on('disconnect', function(){
+	$("#info").show();
+	$("#songname").text("Connection lost");
+	$("#artist").text("");
 });
 
 /* Finder */
@@ -371,17 +416,24 @@ $(function(){
 			$("#channels").show();
 		}
 		if(e.ctrlKey){
-			numbers = {49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9, 48: 10, 189: 11, 187: 12};
+			numbers = {49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9, 48: 10};
 			if(Object.keys(numbers).indexOf(e.which.toString()) != -1){
 				e.preventDefault();
 				socket.send({type: "mute", channel: numbers[e.which]});
 				return false;
 			}
+			if(e.which == 189){
+				socket.send({type: "tempodown"});
+				e.preventDefault();
+			}else if(e.which == 187){
+				socket.send({type: "tempoup"});
+				e.preventDefault();
+			}
 		}
 	});
 	$("#songfinder").keyup(function(e){
 		if(e.ctrlKey){
-			numbers = {49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9, 48: 0, 189: 11, 187: 12};
+			numbers = {49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9, 48: 0, 189: 0, 187:0};
 			if(Object.keys(numbers).indexOf(e.which.toString()) != -1){
 				e.preventDefault();
 				return false;
@@ -421,8 +473,10 @@ $(function(){
 				return;
 			}
 			socket.send({type: "queue", name: sel.data("id")});
-		}else if(e.which == 35){
+		}else if(e.which == 35){ // end
 			socket.send({type: "stop"});
+		}else if(e.which == 36){ //home
+			socket.send({type: "restart"});
 		}else if(e.which == 27){
 			$("#findout").empty();
 			selPos = 0;
@@ -443,7 +497,8 @@ $(function(){
 	});
 	$.getJSON("pictures.json", function(d){
 		bglist = d;
-		shuffleBg();
+		if(d.length > 0)
+			shuffleBg();
 	});
 	$("#channels td").click(function(){
 		c = parseInt(this.innerHTML);
@@ -468,6 +523,8 @@ $(function(){
 	<table>
 		<tr><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td><td>16</td></tr>
 	</table>
+</div>
+<div id="tempo">
 </div>
 <div id="info"><div id='songname'></div><div id='artist'></div></div>
 <div id="lyric">

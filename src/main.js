@@ -198,6 +198,11 @@ function finder(query){
 		ser = [1,2,4];
 		for(var i in ser){
 			x = ser[i];
+			if(d[x].toLowerCase() == query){
+				totalFound++;
+				result.unshift(formatData(d));
+				break;
+			}
 			if(d[x].toLowerCase().indexOf(query) == 0){
 				totalFound++;
 				result.push(formatData(d));
@@ -239,6 +244,17 @@ socket.on('connection', function(client){
 		}else if(d.type == "mute"){
 			midicore.mute(parseInt(d.channel)-1, function(){
 				channelPoller(false);
+			});
+		}else if(d.type == "restart"){
+			queue.unshift(finder(playing)[0]);
+			midicore.send(["stop"]);
+		}else if(d.type == "tempoup"){
+			midicore.bpm(function(d){
+				midicore.bpmc(d.bpm + 5);
+			});
+		}else if(d.type == "tempodown"){
+			midicore.bpm(function(d){
+				midicore.bpmc(d.bpm - 5);
 			});
 		}
 	});
