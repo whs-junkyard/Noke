@@ -28,7 +28,7 @@ function fisherYates ( myArray ) {
 
 /* Web system */
 var app = express.createServer();
-app.configure('development', function(){
+app.configure(function(){
     app.use(express.static(__dirname + '/html'));
     app.use(express.static(settings.path));
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
@@ -226,11 +226,12 @@ function finder(query){
 
 /* Socket system */
 var socket = io.listen(app);
-socket.on('connection', function(client){ 
+socket.set('log level', 1);
+socket.sockets.on('connection', function(client){ 
 	client.on('message', function(d){
 		if(d.type == "find"){
 			out = finder(d.name);
-			client.send({type: "find", data: out});
+			client.json.send({type: "find", data: out});
 		}else if(d.type == "stop"){
 			midicore.stop();
 		}else if(d.type == "queue"){
@@ -282,7 +283,7 @@ function channelPoller(poll){
 			channels[i] = !d.ischannelmute;
 			channelLoad += 1;
 			if(channelLoad == 16){
-				socket.broadcast({"type": "channel", "data": channels});
+				socket.sockets.json.send({"type": "channel", "data": channels});
 				channelLoad = 0;
 				if(poll !== false)
 					setTimeout(channelPoller, 500);
@@ -299,10 +300,10 @@ function midiPoller(){
 	midicore.send(["isplay", "bpm"], function(d){
 		d['song'] = playing;
 		d['queue'] = queue;
-		socket.broadcast({"type": "song", "data": d});
+		socket.sockets.json.send({"type": "song", "data": d});
 		if(d.isplay){
 			midicore.send(["cpitch", "bpm", "ctick", "mxtick", "resolution"], function(d){
-				socket.broadcast({"type": "song", "data": d});
+				socket.sockets.json.send({"type": "song", "data": d});
 				setTimeout(midiPoller, d.resolution);
 			});
 		}else{

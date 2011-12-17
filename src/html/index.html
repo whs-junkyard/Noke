@@ -342,9 +342,8 @@ function shuffleBg(){
 }
 
 /* Socket system */
-var socket = new io.Socket();
+var socket = io.connect();
 var selPos = 0;
-socket.connect();
 socket.on('message', function(msg){
 	if(msg.type == "song"){
 		msg = msg.data;
@@ -419,14 +418,14 @@ $(function(){
 			numbers = {49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9, 48: 10};
 			if(Object.keys(numbers).indexOf(e.which.toString()) != -1){
 				e.preventDefault();
-				socket.send({type: "mute", channel: numbers[e.which]});
+				socket.json.send({type: "mute", channel: numbers[e.which]});
 				return false;
 			}
 			if(e.which == 189){
-				socket.send({type: "tempodown"});
+				socket.json.send({type: "tempodown"});
 				e.preventDefault();
 			}else if(e.which == 187){
-				socket.send({type: "tempoup"});
+				socket.json.send({type: "tempoup"});
 				e.preventDefault();
 			}
 		}
@@ -472,11 +471,11 @@ $(function(){
 			if(sel.length == 0){
 				return;
 			}
-			socket.send({type: "queue", name: sel.data("id")});
+			socket.json.send({type: "queue", name: sel.data("id")});
 		}else if(e.which == 35){ // end
-			socket.send({type: "stop"});
+			socket.json.send({type: "stop"});
 		}else if(e.which == 36){ //home
-			socket.send({type: "restart"});
+			socket.json.send({type: "restart"});
 		}else if(e.which == 27){
 			$("#findout").empty();
 			selPos = 0;
@@ -486,7 +485,7 @@ $(function(){
 			if(this.value != ""){
 				clearTimeout(searchTimeout);
 				setTimeout(function(){
-					socket.send({type: "find", name: $("#songfinder").val()});
+					socket.json.send({type: "find", name: $("#songfinder").val()});
 				}, 500);
 			}else{
 				clearTimeout(searchTimeout);
@@ -502,7 +501,7 @@ $(function(){
 	});
 	$("#channels td").click(function(){
 		c = parseInt(this.innerHTML);
-		socket.send({type: "mute", channel: c});
+		socket.json.send({type: "mute", channel: c});
 		e.preventDefault();
 		return false;
 	});

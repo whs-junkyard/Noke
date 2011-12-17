@@ -67,19 +67,16 @@ exports.send = function(message, cb){
 	}else{
 		msg = message;
 	}
+	if(exports.debug) console.log("Sending "+msg);
 	message = new Buffer(msg);
 	if(cb)
 		callback.push(cb);
-	else
-		callback.push(function(){
-			if(exports.debug) console.warn("Message have no receiver!");
-		});
 	client.send(message, 0, message.length, exports.target[1], exports.target[0],
 		function (err, bytes) {
 			if (err) {
 				throw err;
 			}
-			if(exports.debug) console.log("Wrote " + bytes + " bytes to socket.");
+			//if(exports.debug) console.log("Wrote " + bytes + " bytes to socket.");
 		}
 	);
 }
